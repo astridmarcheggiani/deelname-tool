@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deelnamepercentage Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --text: #2c2c2c;
+    --text-light: #6b6b6b;
+    --border: #e2ddd5;
+    --shadow: 0 2px 20px rgba(0,0,0,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin-bottom: 36px;
+  }
+
+  .input-section {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  input[type="number"] {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    width: 110px;
+    padding: 12px 36px 12px 18px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+  input[type="number"]:focus {
+    border-color: #888;
+  }
+
+  .percent-sign {
+    position: absolute;
+    right: 14px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-light);
+    pointer-events: none;
+  }
+
+  button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 13px 28px;
+    border: none;
+    border-radius: 12px;
+    background: var(--text);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+  button:hover {
+    background: #444;
+    transform: translateY(-1px);
+  }
+  button:active {
+    transform: translateY(0);
+  }
+
+  /* === PREVIEW === */
+  .preview-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 40px 32px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .preview-card.visible { display: block; }
+
+  .preview-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-light);
+    margin-bottom: 10px;
+  }
+
+  .bar-container {
+    width: 100%;
+    height: 38px;
+    background: #edebe6;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.8s cubic-bezier(0.25, 0.8, 0.25, 1),
+                background 0.5s ease;
+    position: relative;
+    min-width: 0;
+  }
+
+  .bar-percentage-inside {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity 0.3s 0.4s;
+  }
+  .bar-percentage-inside.show { opacity: 1; }
+
+  .bar-percentage-outside {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.3s 0.4s;
+  }
+  .bar-percentage-outside.show { opacity: 1; }
+
+  .bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .scale-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: #aaa;
+    font-weight: 500;
+  }
+
+  /* === COPY SECTION === */
+  .copy-section {
+    display: none;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .copy-section.visible { display: flex; }
+
+  .copy-btn {
+    background: #fff;
+    color: var(--text);
+    border: 2px solid var(--border);
+    font-size: 0.85rem;
+    padding: 10px 22px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .copy-btn:hover {
+    border-color: #aaa;
+    background: #fafaf8;
+  }
+  .copy-btn.success {
+    border-color: #4caf50;
+    color: #388e3c;
+    background: #f1f8f1;
+  }
+
+  .copy-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tip {
+    text-align: center;
+    font-size: 0.78rem;
+    color: #aaa;
+    max-width: 440px;
+    line-height: 1.5;
+    display: none;
+  }
+  .tip.visible { display: block; }
+
+  #copyCanvas { display: none; }
+
+  @media (max-width: 500px) {
+    body { padding: 24px 14px; }
+    .preview-card { padding: 24px 20px 22px; }
+    h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Deelnamepercentage</h1>
+<p class="subtitle">Genereer een visuele balk voor op het bewijs van deelname</p>
+
+<div class="input-section">
+  <div class="input-group">
+    <input type="number" id="percentInput" min="0" max="100" placeholder="75" />
+    <span class="percent-sign">%</span>
+  </div>
+  <button onclick="generateBar()">Genereer balk</button>
+</div>
+
+<div class="preview-card" id="previewCard">
+  <div class="preview-label">Deelnamepercentage</div>
+  <div class="bar-container" id="barContainer">
+    <div class="bar-fill" id="barFill">
+      <span class="bar-percentage-inside" id="pctInside"></span>
+    </div>
+    <span class="bar-percentage-outside" id="pctOutside"></span>
+  </div>
+  <div class="bottom-row">
+    <div class="scale-labels" style="width:100%">
+      <span>0%</span>
+      <span>25%</span>
+      <span>50%</span>
+      <span>75%</span>
+      <span>100%</span>
+    </div>
+  </div>
+</div>
+
+<div class="copy-section" id="copySection">
+  <button class="copy-btn" onclick="copyAsImage()" id="copyImgBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    Kopieer als afbeelding
+  </button>
+</div>
+
+<p class="tip" id="tip">
+  💡 Tip: klik op "Kopieer als afbeelding" en plak de balk direct in een Word-document of ander programma met Ctrl+V.
+</p>
+
+<canvas id="copyCanvas"></canvas>
+
+<script>
+function getBarColor(pct) {
+  let r, g, b;
+  if (pct <= 40) {
+    const t = pct / 40;
+    r = Math.round(210 + (230 - 210) * t);
+    g = Math.round(55 + (140 - 55) * t);
+    b = Math.round(55 + (30 - 55) * t);
+  } else if (pct <= 65) {
+    const t = (pct - 40) / 25;
+    r = Math.round(230 + (140 - 230) * t);
+    g = Math.round(140 + (180 - 140) * t);
+    b = Math.round(30 + (50 - 30) * t);
+  } else {
+    const t = (pct - 65) / 35;
+    r = Math.round(140 + (56 - 140) * t);
+    g = Math.round(180 + (168 - 180) * t);
+    b = Math.round(50 + (72 - 50) * t);
+  }
+  return `rgb(${r},${g},${b})`;
+}
+
+function generateBar() {
+  const input = document.getElementById('percentInput');
+  let val = parseInt(input.value);
+  if (isNaN(val)) val = 0;
+  val = Math.max(0, Math.min(100, val));
+  input.value = val;
+
+  const card = document.getElementById('previewCard');
+  const fill = document.getElementById('barFill');
+  const pctInside = document.getElementById('pctInside');
+  const pctOutside = document.getElementById('pctOutside');
+  const copySection = document.getElementById('copySection');
+  const tip = document.getElementById('tip');
+
+  card.classList.add('visible');
+  copySection.classList.add('visible');
+  tip.classList.add('visible');
+
+  fill.style.transition = 'none';
+  fill.style.width = '0%';
+  pctInside.classList.remove('show');
+  pctOutside.classList.remove('show');
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fill.style.transition = 'width 0.8s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.5s ease';
+      fill.style.width = val + '%';
+      fill.style.background = getBarColor(val);
+
+      const label = val + '%';
+      if (val >= 15) {
+        pctInside.textContent = label;
+        pctInside.classList.add('show');
+        pctOutside.classList.remove('show');
+      } else {
+        pctOutside.textContent = label;
+        pctOutside.style.left = 'calc(' + Math.max(val, 2) + '% + 8px)';
+        pctOutside.style.color = getBarColor(val);
+        pctOutside.classList.add('show');
+        pctInside.classList.remove('show');
+      }
+    });
+  });
+
+  document.getElementById('copyImgBtn').classList.remove('success');
+}
+
+function drawBarToCanvas(scale) {
+  const val = parseInt(document.getElementById('percentInput').value) || 0;
+  const canvas = document.getElementById('copyCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const W = 520 * scale;
+  const padX = 40 * scale;
+  const padTop = 32 * scale;
+  const padBottom = 28 * scale;
+  const barH = 38 * scale;
+  const labelH = 18 * scale;
+  const scaleH = 16 * scale;
+  const gapLabel = 10 * scale;
+  const gapScale = 10 * scale;
+
+  const totalH = padTop + labelH + gapLabel + barH + gapScale + scaleH + padBottom;
+  canvas.width = W;
+  canvas.height = totalH;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, W, totalH, 12 * scale);
+  ctx.fill();
+
+  ctx.fillStyle = '#6b6b6b';
+  ctx.font = `${600} ${11 * scale}px 'DM Sans', sans-serif`;
+  ctx.letterSpacing = '0.08em';
+  ctx.textBaseline = 'top';
+  ctx.fillText('DEELNAMEPERCENTAGE', padX, padTop);
+
+  const barY = padTop + labelH + gapLabel;
+  const barW = W - padX * 2;
+  ctx.fillStyle = '#edebe6';
+  ctx.beginPath();
+  ctx.roundRect(padX, barY, barW, barH, 10 * scale);
+  ctx.fill();
+
+  const fillW = (val / 100) * barW;
+  if (fillW > 0) {
+    ctx.fillStyle = getBarColor(val);
+    ctx.beginPath();
+    ctx.roundRect(padX, barY, fillW, barH, 10 * scale);
+    ctx.fill();
+  }
+
+  ctx.font = `${700} ${13 * scale}px 'DM Sans', sans-serif`;
+  ctx.letterSpacing = '0';
+  const pctText = val + '%';
+  if (val >= 15) {
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    ctx.fillText(pctText, padX + fillW - 10 * scale, barY + barH / 2);
+  } else {
+    ctx.fillStyle = getBarColor(val);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillText(pctText, padX + fillW + 8 * scale, barY + barH / 2);
+  }
+
+  ctx.fillStyle = '#aaaaaa';
+  ctx.font = `${500} ${9 * scale}px 'DM Sans', sans-serif`;
+  ctx.textBaseline = 'top';
+  const scaleY = barY + barH + gapScale;
+  const labels = ['0%', '25%', '50%', '75%', '100%'];
+  labels.forEach((lbl, i) => {
+    const x = padX + (barW * i) / 4;
+    ctx.textAlign = i === 0 ? 'left' : i === 4 ? 'right' : 'center';
+    ctx.fillText(lbl, x, scaleY);
+  });
+
+  return canvas;
+}
+
+async function copyAsImage() {
+  const btn = document.getElementById('copyImgBtn');
+  try {
+    const canvas = drawBarToCanvas(3);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': blob })
+    ]);
+    btn.classList.add('success');
+    btn.querySelector('svg').style.display = 'none';
+    const origText = btn.childNodes[btn.childNodes.length - 1];
+    const old = origText.textContent;
+    origText.textContent = ' Gekopieerd!';
+    setTimeout(() => {
+      btn.classList.remove('success');
+      btn.querySelector('svg').style.display = '';
+      origText.textContent = old;
+    }, 2000);
+  } catch(e) {
+    alert('Kopiëren naar klembord wordt niet ondersteund in deze browser. Probeer het in Chrome of Edge.');
+  }
+}
+
+document.getElementById('percentInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') generateBar();
+});
+</script>
+
+</body>
+</html>
