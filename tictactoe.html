@@ -495,11 +495,15 @@ function renderBoard() {
   const cells = document.querySelectorAll('.cell');
   cells.forEach((cell, i) => {
     if (board[i] === PLAYER) {
-      cell.innerHTML = svgX();
-      cell.classList.add('taken');
+      if (!cell.classList.contains('taken')) {
+        cell.innerHTML = svgX();
+        cell.classList.add('taken');
+      }
     } else if (board[i] === AI) {
-      cell.innerHTML = svgO();
-      cell.classList.add('taken');
+      if (!cell.classList.contains('taken')) {
+        cell.innerHTML = svgO();
+        cell.classList.add('taken');
+      }
     } else {
       cell.innerHTML = '';
       cell.classList.remove('taken', 'win-cell');
@@ -737,8 +741,8 @@ function resetGame() {
   gameActive = true;
   renderBoard();
 
-  if (difficulty === 'superHard') {
-    // Computer begint — extra moeilijk!
+  if (difficulty === 'superHard' && Math.random() < 0.8) {
+    // 80% kans dat de computer begint — extra moeilijk!
     gameActive = false;
     updateStatus('Computer begint...', 'var(--red)', true);
     setTimeout(() => {
@@ -767,7 +771,7 @@ function setDifficulty(level) {
   // Update subtitle based on difficulty
   const sub = document.querySelector('.subtitle');
   if (level === 'superHard') {
-    sub.innerHTML = 'De computer begint en speelt <strong>perfect</strong> — veel succes!';
+    sub.innerHTML = 'De computer speelt <strong>perfect</strong> en begint meestal eerst — veel succes!';
   } else if (level === 'superEasy') {
     sub.innerHTML = 'De computer doet maar wat — <strong>makkie!</strong>';
   } else {
