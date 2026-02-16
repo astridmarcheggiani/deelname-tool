@@ -319,25 +319,29 @@
   /* Difficulty selector */
   .difficulty {
     display: flex;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 4px;
     margin-bottom: 20px;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 4px;
+    justify-content: center;
+    max-width: 380px;
   }
 
   .diff-btn {
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    padding: 8px 16px;
+    padding: 8px 10px;
     border: none;
     border-radius: 9px;
     background: transparent;
     color: var(--text-light);
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
   }
 
   .diff-btn.active {
@@ -371,9 +375,11 @@
 <p class="subtitle">Jij speelt met <strong style="color:var(--blue)">blauw</strong>, de computer met <strong style="color:var(--red)">rood</strong></p>
 
 <div class="difficulty">
+  <button class="diff-btn" data-level="superEasy" onclick="setDifficulty('superEasy')">Super Makkelijk</button>
   <button class="diff-btn" data-level="easy" onclick="setDifficulty('easy')">Makkelijk</button>
   <button class="diff-btn active" data-level="medium" onclick="setDifficulty('medium')">Normaal</button>
   <button class="diff-btn" data-level="hard" onclick="setDifficulty('hard')">Moeilijk</button>
+  <button class="diff-btn" data-level="superHard" onclick="setDifficulty('superHard')">Super Moeilijk</button>
 </div>
 
 <div class="scoreboard">
@@ -622,6 +628,11 @@ function closeResult(event) {
 function getAIMove() {
   const empty = board.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
 
+  if (difficulty === 'superEasy') {
+    // 100% random — de computer doet maar wat
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+
   if (difficulty === 'easy') {
     // 70% random, 30% smart
     if (Math.random() < 0.7) {
@@ -638,7 +649,7 @@ function getAIMove() {
     return getBestMove();
   }
 
-  // Hard: always optimal (minimax)
+  // Hard & Super Hard: always optimal (minimax)
   return getBestMove();
 }
 
@@ -697,7 +708,21 @@ function resetGame() {
   board = Array(9).fill(null);
   gameActive = true;
   renderBoard();
-  updateStatus('Jouw beurt', 'var(--blue)', false);
+
+  if (difficulty === 'superHard') {
+    // Computer begint — extra moeilijk!
+    gameActive = false;
+    updateStatus('Computer begint...', 'var(--red)', true);
+    setTimeout(() => {
+      const aiMove = getAIMove();
+      board[aiMove] = AI;
+      renderBoard();
+      gameActive = true;
+      updateStatus('Jouw beurt', 'var(--blue)', false);
+    }, 500);
+  } else {
+    updateStatus('Jouw beurt', 'var(--blue)', false);
+  }
 }
 
 function resetScores() {
@@ -711,6 +736,15 @@ function setDifficulty(level) {
   document.querySelectorAll('.diff-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.level === level);
   });
+  // Update subtitle based on difficulty
+  const sub = document.querySelector('.subtitle');
+  if (level === 'superHard') {
+    sub.innerHTML = 'De computer begint en speelt <strong>perfect</strong> — veel succes!';
+  } else if (level === 'superEasy') {
+    sub.innerHTML = 'De computer doet maar wat — <strong>makkie!</strong>';
+  } else {
+    sub.innerHTML = 'Jij speelt met <strong style="color:var(--blue)">blauw</strong>, de computer met <strong style="color:var(--red)">rood</strong>';
+  }
   resetGame();
 }
 
