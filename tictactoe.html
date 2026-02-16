@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Boter, Kaas en Eieren</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --text: #2c2c2c;
+    --text-light: #6b6b6b;
+    --border: #e2ddd5;
+    --shadow: 0 2px 20px rgba(0,0,0,0.06);
+    --blue: #2563eb;
+    --blue-light: #dbeafe;
+    --blue-glow: rgba(37, 99, 235, 0.15);
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --red-glow: rgba(220, 38, 38, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  /* Score board */
+  .scoreboard {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .score-card {
+    flex: 1;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 10px;
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .score-card.blue {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--blue-glow);
+  }
+
+  .score-card.red {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px var(--red-glow);
+  }
+
+  .score-card.draw {
+    border-color: var(--text-light);
+  }
+
+  .score-card .label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .score-card.blue .label { color: var(--blue); }
+  .score-card.red .label { color: var(--red); }
+  .score-card.draw .label { color: var(--text-light); }
+
+  .score-card .value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .score-card.blue .value { color: var(--blue); }
+  .score-card.red .value { color: var(--red); }
+  .score-card.draw .value { color: var(--text-light); }
+
+  /* Status message */
+  .status {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.3s;
+  }
+
+  .status .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  .status.thinking .dot {
+    background: var(--red);
+  }
+
+  /* Game board */
+  .board-wrapper {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    width: 300px;
+    height: 300px;
+  }
+
+  .cell {
+    background: var(--bg);
+    border: none;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .cell:active:not(.taken) {
+    transform: scale(0.95);
+    background: #eeece7;
+  }
+
+  .cell.taken {
+    cursor: default;
+  }
+
+  .cell.win-cell {
+    animation: winPop 0.5s ease;
+  }
+
+  @keyframes winPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  /* X and O shapes via SVG */
+  .cell svg {
+    width: 54px;
+    height: 54px;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .cell.taken svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Win line overlay */
+  .win-line {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-primary {
+    background: var(--text);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #444;
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: #fff;
+    color: var(--text);
+    border: 2px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    border-color: #aaa;
+    background: #fafaf8;
+  }
+
+  button:active {
+    transform: translateY(0) !important;
+  }
+
+  /* Result overlay */
+  .result-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s;
+    padding: 20px;
+  }
+
+  .result-overlay.visible {
+    display: flex;
+    opacity: 1;
+  }
+
+  .result-card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 36px 32px 28px;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    max-width: 320px;
+    width: 100%;
+  }
+
+  .result-overlay.visible .result-card {
+    transform: scale(1);
+  }
+
+  .result-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+
+  .result-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .result-subtitle {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  .result-card .btn-primary {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+  }
+
+  /* Difficulty selector */
+  .difficulty {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+  }
+
+  .diff-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .diff-btn.active {
+    background: var(--text);
+    color: #fff;
+  }
+
+  .diff-btn:not(.active):hover {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* Responsive */
+  @media (max-width: 380px) {
+    body { padding: 20px 10px; }
+    h1 { font-size: 1.5rem; }
+    .board { width: 270px; height: 270px; }
+    .cell svg { width: 46px; height: 46px; }
+    .scoreboard { max-width: 300px; }
+  }
+
+  @media (min-width: 500px) {
+    .board { width: 340px; height: 340px; }
+    .cell svg { width: 62px; height: 62px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Boter, Kaas & Eieren</h1>
+<p class="subtitle">Jij speelt met <strong style="color:var(--blue)">blauw</strong>, de computer met <strong style="color:var(--red)">rood</strong></p>
+
+<div class="difficulty">
+  <button class="diff-btn" data-level="easy" onclick="setDifficulty('easy')">Makkelijk</button>
+  <button class="diff-btn active" data-level="medium" onclick="setDifficulty('medium')">Normaal</button>
+  <button class="diff-btn" data-level="hard" onclick="setDifficulty('hard')">Moeilijk</button>
+</div>
+
+<div class="scoreboard">
+  <div class="score-card blue">
+    <div class="label">Jij (blauw)</div>
+    <div class="value" id="scorePlayer">0</div>
+  </div>
+  <div class="score-card draw">
+    <div class="label">Gelijk</div>
+    <div class="value" id="scoreDraw">0</div>
+  </div>
+  <div class="score-card red">
+    <div class="label">Computer (rood)</div>
+    <div class="value" id="scoreAI">0</div>
+  </div>
+</div>
+
+<div class="status" id="status">
+  <span class="dot" style="background:var(--blue)"></span>
+  Jouw beurt
+</div>
+
+<div class="board-wrapper">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="btn-row">
+  <button class="btn-primary" onclick="resetGame()">Nieuw spel</button>
+  <button class="btn-secondary" onclick="resetScores()">Reset score</button>
+</div>
+
+<!-- Result overlay -->
+<div class="result-overlay" id="resultOverlay" onclick="closeResult(event)">
+  <div class="result-card">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-subtitle" id="resultSubtitle"></div>
+    <button class="btn-primary" onclick="resetGame(); closeResult(event);">Opnieuw spelen</button>
+  </div>
+</div>
+
+<script>
+// ============ Game State ============
+const PLAYER = 'X'; // Blue - user
+const AI = 'O';     // Red - computer
+let board = Array(9).fill(null);
+let gameActive = true;
+let difficulty = 'medium';
+let scores = { player: 0, ai: 0, draw: 0 };
+
+const winPatterns = [
+  [0,1,2],[3,4,5],[6,7,8], // rows
+  [0,3,6],[1,4,7],[2,5,8], // cols
+  [0,4,8],[2,4,6]          // diags
+];
+
+// ============ SVG Shapes ============
+function svgX() {
+  return `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <line x1="14" y1="14" x2="46" y2="46" stroke="var(--blue)" stroke-width="6" stroke-linecap="round"/>
+    <line x1="46" y1="14" x2="14" y2="46" stroke="var(--blue)" stroke-width="6" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function svgO() {
+  return `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="30" cy="30" r="17" stroke="var(--red)" stroke-width="6" fill="none"/>
+  </svg>`;
+}
+
+// ============ Board Rendering ============
+function createBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.index = i;
+    cell.addEventListener('click', () => handleCellClick(i));
+    boardEl.appendChild(cell);
+  }
+}
+
+function renderBoard() {
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach((cell, i) => {
+    if (board[i] === PLAYER) {
+      cell.innerHTML = svgX();
+      cell.classList.add('taken');
+    } else if (board[i] === AI) {
+      cell.innerHTML = svgO();
+      cell.classList.add('taken');
+    } else {
+      cell.innerHTML = '';
+      cell.classList.remove('taken', 'win-cell');
+    }
+  });
+}
+
+function updateStatus(text, color, thinking) {
+  const status = document.getElementById('status');
+  status.innerHTML = '';
+  if (thinking) {
+    status.className = 'status thinking';
+  } else {
+    status.className = 'status';
+  }
+  const dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = color;
+  if (!thinking) dot.style.animation = 'none';
+  status.appendChild(dot);
+  status.appendChild(document.createTextNode(' ' + text));
+}
+
+// ============ Game Logic ============
+function handleCellClick(index) {
+  if (!gameActive || board[index] !== null) return;
+
+  // Player move
+  board[index] = PLAYER;
+  renderBoard();
+
+  const result = checkWin();
+  if (result) {
+    endGame(result);
+    return;
+  }
+
+  if (board.every(c => c !== null)) {
+    endGame('draw');
+    return;
+  }
+
+  // AI turn
+  gameActive = false;
+  updateStatus('Computer denkt na...', 'var(--red)', true);
+
+  setTimeout(() => {
+    const aiMove = getAIMove();
+    board[aiMove] = AI;
+    renderBoard();
+
+    const result2 = checkWin();
+    if (result2) {
+      endGame(result2);
+      return;
+    }
+
+    if (board.every(c => c !== null)) {
+      endGame('draw');
+      return;
+    }
+
+    gameActive = true;
+    updateStatus('Jouw beurt', 'var(--blue)', false);
+  }, 400);
+}
+
+function checkWin() {
+  for (const pattern of winPatterns) {
+    const [a, b, c] = pattern;
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return { winner: board[a], pattern };
+    }
+  }
+  return null;
+}
+
+function highlightWin(pattern) {
+  const cells = document.querySelectorAll('.cell');
+  pattern.forEach((idx, i) => {
+    setTimeout(() => {
+      cells[idx].classList.add('win-cell');
+    }, i * 100);
+  });
+}
+
+function endGame(result) {
+  gameActive = false;
+
+  if (result === 'draw') {
+    scores.draw++;
+    updateStatus('Gelijkspel!', 'var(--text-light)', false);
+    updateScoreboard();
+    setTimeout(() => showResult('draw'), 600);
+    return;
+  }
+
+  highlightWin(result.pattern);
+
+  if (result.winner === PLAYER) {
+    scores.player++;
+    updateStatus('Jij wint!', 'var(--blue)', false);
+    updateScoreboard();
+    setTimeout(() => showResult('player'), 700);
+  } else {
+    scores.ai++;
+    updateStatus('Computer wint!', 'var(--red)', false);
+    updateScoreboard();
+    setTimeout(() => showResult('ai'), 700);
+  }
+}
+
+function updateScoreboard() {
+  document.getElementById('scorePlayer').textContent = scores.player;
+  document.getElementById('scoreAI').textContent = scores.ai;
+  document.getElementById('scoreDraw').textContent = scores.draw;
+}
+
+// ============ Result Overlay ============
+function showResult(type) {
+  const overlay = document.getElementById('resultOverlay');
+  const icon = document.getElementById('resultIcon');
+  const title = document.getElementById('resultTitle');
+  const subtitle = document.getElementById('resultSubtitle');
+
+  if (type === 'player') {
+    icon.textContent = '\u{1F389}';
+    title.textContent = 'Gewonnen!';
+    title.style.color = 'var(--blue)';
+    subtitle.textContent = 'Goed gespeeld, je hebt de computer verslagen!';
+  } else if (type === 'ai') {
+    icon.textContent = '\u{1F916}';
+    title.textContent = 'Verloren';
+    title.style.color = 'var(--red)';
+    subtitle.textContent = 'De computer heeft gewonnen. Probeer het opnieuw!';
+  } else {
+    icon.textContent = '\u{1F91D}';
+    title.textContent = 'Gelijkspel';
+    title.style.color = 'var(--text)';
+    subtitle.textContent = 'Goed gespeeld! Niemand wint deze ronde.';
+  }
+
+  overlay.classList.add('visible');
+}
+
+function closeResult(event) {
+  if (event.target === document.getElementById('resultOverlay') ||
+      event.target.tagName === 'BUTTON') {
+    document.getElementById('resultOverlay').classList.remove('visible');
+  }
+}
+
+// ============ AI Logic ============
+function getAIMove() {
+  const empty = board.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
+
+  if (difficulty === 'easy') {
+    // 70% random, 30% smart
+    if (Math.random() < 0.7) {
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+    return getBestMove();
+  }
+
+  if (difficulty === 'medium') {
+    // 30% random, 70% smart
+    if (Math.random() < 0.3) {
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+    return getBestMove();
+  }
+
+  // Hard: always optimal (minimax)
+  return getBestMove();
+}
+
+function getBestMove() {
+  let bestScore = -Infinity;
+  let bestMove = -1;
+
+  for (let i = 0; i < 9; i++) {
+    if (board[i] !== null) continue;
+    board[i] = AI;
+    const score = minimax(board, 0, false, -Infinity, Infinity);
+    board[i] = null;
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = i;
+    }
+  }
+
+  return bestMove;
+}
+
+function minimax(b, depth, isMaximizing, alpha, beta) {
+  const result = checkWin();
+  if (result) {
+    return result.winner === AI ? 10 - depth : depth - 10;
+  }
+  if (b.every(c => c !== null)) return 0;
+
+  if (isMaximizing) {
+    let best = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (b[i] !== null) continue;
+      b[i] = AI;
+      best = Math.max(best, minimax(b, depth + 1, false, alpha, beta));
+      b[i] = null;
+      alpha = Math.max(alpha, best);
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (b[i] !== null) continue;
+      b[i] = PLAYER;
+      best = Math.min(best, minimax(b, depth + 1, true, alpha, beta));
+      b[i] = null;
+      beta = Math.min(beta, best);
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+}
+
+// ============ Game Controls ============
+function resetGame() {
+  board = Array(9).fill(null);
+  gameActive = true;
+  renderBoard();
+  updateStatus('Jouw beurt', 'var(--blue)', false);
+}
+
+function resetScores() {
+  scores = { player: 0, ai: 0, draw: 0 };
+  updateScoreboard();
+  resetGame();
+}
+
+function setDifficulty(level) {
+  difficulty = level;
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.level === level);
+  });
+  resetGame();
+}
+
+// ============ Initialize ============
+createBoard();
+updateStatus('Jouw beurt', 'var(--blue)', false);
+</script>
+
+</body>
+</html>
